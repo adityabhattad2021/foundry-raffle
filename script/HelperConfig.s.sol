@@ -17,7 +17,6 @@ contract HelperConfig is Script {
         uint32 callbackGasLimit;
         address vrfCoordinatorV2;
         address link;
-        uint256 deployerKey;
     }
 
     uint256 public DEFAULT_ANVIL_PRIVATE_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
@@ -39,9 +38,8 @@ contract HelperConfig is Script {
             automationUpdateInterval: 30, // 30 seconds
             raffleEntranceFee: 0.01 ether,
             callbackGasLimit: 500000, // 500,000 gas
-            vrfCoordinatorV2: 0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625,
-            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
-            deployerKey: vm.envUint("PRIVATE_KEY")
+            vrfCoordinatorV2: address(0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625),
+            link: address(0x779877A7B0D9E8603169DdbD7836e478b4624789)
         });
         return sepoliaNetworkConfig;
     }
@@ -72,8 +70,7 @@ contract HelperConfig is Script {
             raffleEntranceFee: 0.01 ether,
             callbackGasLimit: 500000, // 500,000 gas
             vrfCoordinatorV2: address(vrfCoordinatorV2Mock),
-            link: address(link),
-            deployerKey: DEFAULT_ANVIL_PRIVATE_KEY
+            link: address(link)
         });
         return anvilNetworkConfig;
     }

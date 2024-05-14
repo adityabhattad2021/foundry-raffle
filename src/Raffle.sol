@@ -22,16 +22,13 @@ pragma solidity ^0.8.19;
 // Private function
 // View and Pure functions
 
-import { VRFConsumerBaseV2 } from "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
-import { AutomationCompatibleInterface } from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
+import {AutomationCompatibleInterface} from
+    "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 
-contract Raffle is VRFConsumerBaseV2 ,AutomationCompatibleInterface {
-    error Raffle__UpkeepNotNeeded(
-        uint256 currentBalance,
-        uint256 numPlayers,
-        uint256 raffleState
-    );
+contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
+    error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
     error Raffle__TransferFailed();
     error Raffle__ETHNotSufficient();
     error Raffle__RaffleNotOpen();
@@ -55,7 +52,6 @@ contract Raffle is VRFConsumerBaseV2 ,AutomationCompatibleInterface {
     address payable[] private s_players;
     RaffleState private s_raffleState;
 
-
     event RequestRaffleWinner(uint256 indexed requestId);
     event RaffleEnter(address indexed players);
     event WinnerPicked(address indexed player);
@@ -77,16 +73,16 @@ contract Raffle is VRFConsumerBaseV2 ,AutomationCompatibleInterface {
         s_lastTimeStamp = block.timestamp;
         i_callbackGasLimit = callbackGasLimit;
         uint256 balance = address(this).balance;
-        if(balance > 0){
+        if (balance > 0) {
             payable(msg.sender).transfer(balance);
         }
     }
 
     function enterRaffle() public payable {
-        if(msg.value<i_entranceFee){
+        if (msg.value < i_entranceFee) {
             revert Raffle__ETHNotSufficient();
         }
-        if(s_raffleState != RaffleState.OPEN){
+        if (s_raffleState != RaffleState.OPEN) {
             revert Raffle__RaffleNotOpen();
         }
 
@@ -95,97 +91,85 @@ contract Raffle is VRFConsumerBaseV2 ,AutomationCompatibleInterface {
         emit RaffleEnter(msg.sender);
     }
 
-    function checkUpkeep(
-        bytes memory /* checkData */
-    )
+    function checkUpkeep(bytes memory /* checkData */ )
         public
         view
         override
-        returns(
-            bool upkeepNeeded,
-            bytes memory /*performData*/
-        )
+        returns (bool upkeepNeeded, bytes memory /*performData*/ )
     {
         bool isOpen = s_raffleState == RaffleState.OPEN;
         bool timePassed = block.timestamp - s_lastTimeStamp > i_interval;
         bool hasPlayers = s_players.length > 0;
         upkeepNeeded = isOpen && timePassed && hasPlayers;
-   
+
         return (upkeepNeeded, "");
     }
 
-    function performUpkeep(bytes calldata /*performData*/) external override {
-        (bool upkeepNeeded,)=checkUpkeep("");
-        if(!upkeepNeeded){
+    function performUpkeep(bytes calldata /*performData*/ ) external override {
+        (bool upkeepNeeded,) = checkUpkeep("");
+        if (!upkeepNeeded) {
             revert Raffle__UpkeepNotNeeded(address(this).balance, s_players.length, uint256(s_raffleState));
         }
         s_raffleState = RaffleState.CALCULATING;
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
-            i_gasLane,
-            i_subscriptionId,
-            REQUEST_CONFIRMATIONS,
-            i_callbackGasLimit,
-            NUM_WORDS
+            i_gasLane, i_subscriptionId, REQUEST_CONFIRMATIONS, i_callbackGasLimit, NUM_WORDS
         );
         emit RequestRaffleWinner(requestId);
     }
 
-    function fulfillRandomWords(
-        uint256 /* requestId */,
-        uint256[] memory randomWords
-    ) internal override {
+    function fulfillRandomWords(uint256, /* requestId */ uint256[] memory randomWords) internal override {
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];
         s_recentWinner = recentWinner;
         s_players = new address payable[](0);
         s_lastTimeStamp = block.timestamp;
-        s_raffleState = RaffleState.OPEN;   
+        s_raffleState = RaffleState.OPEN;
         emit WinnerPicked(recentWinner);
 
-        (bool success, ) = recentWinner.call{value: address(this).balance}("");
+        (bool success,) = recentWinner.call{value: address(this).balance}("");
 
-        if(!success){
+        if (!success) {
             revert Raffle__TransferFailed();
         }
     }
 
-    function getRaffleState() public view returns(RaffleState){
+    function getRaffleState() public view returns (RaffleState) {
         return s_raffleState;
     }
 
-    function getNumWords() public pure returns(uint32){
+    function getNumWords() public pure returns (uint32) {
         return NUM_WORDS;
     }
 
-    function getRequestConfirmations() public pure returns(uint16){
+    function getRequestConfirmations() public pure returns (uint16) {
         return REQUEST_CONFIRMATIONS;
     }
 
-    function getRecentWinner() public view returns(address){
+    function getRecentWinner() public view returns (address) {
         return s_recentWinner;
     }
 
-    function getPlayers() public view returns(address payable[] memory){
+    function getPlayers() public view returns (address payable[] memory) {
         return s_players;
     }
 
-    function getPlayer(uint256 index) public view returns(address payable){
+    function getPlayer(uint256 index) public view returns (address payable) {
         return s_players[index];
     }
 
-    function getInterval() public view returns(uint256){
+    function getInterval() public view returns (uint256) {
         return i_interval;
     }
 
-    function getEntranceFee() public view returns(uint256){
+    function getEntranceFee() public view returns (uint256) {
         return i_entranceFee;
     }
 
-    function getLastTimeStamp() public view returns(uint256){
+    function getLastTimeStamp() public view returns (uint256) {
         return s_lastTimeStamp;
     }
 
-    function getNumPlayers() public view returns(uint256){
+    function getNumPlayers() public view returns (uint256) {
         return s_players.length;
     }
 }
