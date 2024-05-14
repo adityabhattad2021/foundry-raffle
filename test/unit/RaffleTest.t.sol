@@ -77,4 +77,71 @@ contract RaffleTest is Test {
         vm.deal(PLAYER,100 ether);
         raffle.enterRaffle{value:raffleEntranceFee}();
     }
+
+    function testCheckUpKeepReturnsFalseIfNoBalance() public {
+        vm.warp(block.timestamp+automationUpdateInterval+1);
+        vm.roll(block.number+1);
+
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+
+        assert(upkeepNeeded == false);
+    }
+
+    function testCheckUpkeepReturnsFalseRaffleIsntOpen() public {
+        vm.prank(PLAYER);
+        vm.deal(PLAYER,100 ether);
+        raffle.enterRaffle{value:raffleEntranceFee}();
+        vm.warp(block.timestamp+automationUpdateInterval+1);
+        vm.roll(block.number+1);
+        raffle.performUpkeep("");
+
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+
+        assert(upkeepNeeded == false);
+    }
+
+    function testCheckUpkeepReturnsFalseIfEnoughTimeHasntPassed()public{
+        vm.prank(PLAYER);
+        vm.deal(PLAYER,100 ether);
+        raffle.enterRaffle{value:raffleEntranceFee}();
+
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+
+        assert(upkeepNeeded == false);
+    }
+
+    function testCheckUpkeepReturnsTrueIfPrametersCorrect() public {
+        vm.prank(PLAYER);
+        vm.deal(PLAYER,100 ether);
+        raffle.enterRaffle{value:raffleEntranceFee}();
+        vm.warp(block.timestamp+automationUpdateInterval+1);
+        vm.roll(block.number+1);
+
+        (bool upkeepNeeded,) = raffle.checkUpkeep("");
+
+        assert(upkeepNeeded == true);
+    }
+
+    function testCheckPerformUpkeepCanOnlyRunIfCheckUpkeepIsTrue() public {
+
+        // CheckUpkeep is false
+        vm.expectRevert(abi.encodeWithSelector(
+            Raffle.Raffle__UpkeepNotNeeded.selector,
+            address(raffle).balance,
+            raffle.getNumPlayers(),
+            uint256(raffle.getRaffleState())
+        ));
+        raffle.performUpkeep("");
+
+        // CheckUpkeep is true
+        vm.prank(PLAYER);
+        vm.deal(PLAYER,100 ether);
+        raffle.enterRaffle{value:raffleEntranceFee}();
+        vm.warp(block.timestamp+automationUpdateInterval+1);
+        vm.roll(block.number+1);
+        raffle.performUpkeep("");
+        
+    }
+
+
 }
