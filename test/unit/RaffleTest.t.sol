@@ -5,6 +5,7 @@ import {DeployRaffle} from "../../script/DeployRaffle.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
 import {Test, console} from "forge-std/Test.sol";
+import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
 
 contract RaffleTest is Test {
 
@@ -143,5 +144,31 @@ contract RaffleTest is Test {
         
     }
 
+    function testFulfillRandomWordsCanOnlyBeCalledAfterPerformUpkeep() public {
+        // add player
+        vm.prank(PLAYER);
+        vm.deal(PLAYER,100 ether);
+        raffle.enterRaffle{value:raffleEntranceFee}();
+        vm.warp(block.timestamp+automationUpdateInterval+1);
+        vm.roll(block.number+1);
+
+        vm.expectRevert("nonexistent request");
+
+        VRFCoordinatorV2Mock(vrfCoordinatorV2).fulfillRandomWords(
+            0,
+            address(raffle)
+        );
+    }
+
+    function testGetRaffleState() public view {
+        assert(raffle.getRaffleState() == Raffle.RaffleState.OPEN);
+    }
+
+    function testGetNumPlayers() public {
+        vm.prank(PLAYER);
+        vm.deal(PLAYER,100 ether);
+        raffle.enterRaffle{value:raffleEntranceFee}();
+        assert(raffle.getNumPlayers() == 1);
+    }
 
 }
